@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:security="http://www.springframework.org/schema/security"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    						http://www.springframework.org/schema/beans/spring-beans.xsd
+    						http://www.springframework.org/schema/context
+    						http://www.springframework.org/schema/context/spring-context.xsd
+    						http://www.springframework.org/schema/util 
+							http://www.springframework.org/schema/util/spring-util.xsd 
+							http://www.springframework.org/schema/tx
+					        http://www.springframework.org/schema/tx/spring-tx.xsd
+					        http://www.springframework.org/schema/aop
+					        http://www.springframework.org/schema/aop/spring-aop.xsd
+					        http://www.springframework.org/schema/mvc  
+							http://www.springframework.org/schema/mvc/spring-mvc.xsd 
+							http://www.springframework.org/schema/security
+							http://www.springframework.org/schema/security/spring-security.xsd
+							http://www.springframework.org/schema/cache
+							http://www.springframework.org/schema/cache/spring-cache.xsd
+							http://www.springframework.org/schema/task
+                            http://www.springframework.org/schema/task/spring-task.xsd">
+
+
+	<context:component-scan base-package="com.TDsoft.server" />
+	<context:property-placeholder location="classpath:server.properties" />
+
+	<bean class="com.TDsoft.server.ServerApplicationListener" />
+	<bean id="server" class="org.eclipse.jetty.server.Server"
+		destroy-method="stop">
+		<constructor-arg value="${server.port}" />
+		<property name="handler" ref="servletContextHandler" />
+	</bean>
+	<bean
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject" ref="sntContextHandler" />
+		<property name="targetMethod" value="addServlet" />
+		<property name="arguments">
+			<list>
+				<ref bean="mvcServletHolder" />
+				<value>/</value>
+			</list>
+		</property>
+	</bean>
+	<bean id="mvcServletHolderInitParamSetter"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetObject" ref="mvcServletHolder" />
+		<property name="targetMethod" value="setInitParameter" />
+		<property name="arguments">
+			<list>
+				<value>contextConfigLocation</value>
+				<value>classpath:applicationContext-http.xml</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="mvcServletHolder" class="org.eclipse.jetty.servlet.ServletHolder">
+		<property name="name" value="mvcServlet" />
+		<property name="servlet">
+			<bean class="org.springframework.web.servlet.DispatcherServlet"
+				depends-on="mvcServletHolderInitParamSetter" />
+		</property>
+	</bean>
+	<bean id="servletContextHandler" class="org.eclipse.jetty.server.handler.HandlerCollection">
+		<property name="handlers">
+			<list>
+				<ref bean="exampleContextHandler"/>
+				<!-- must be the last -->
+				<ref bean="sntContextHandler" />
+			</list>
+		</property>
+	</bean>
+	<bean id="sntContextHandler" class="org.eclipse.jetty.webapp.WebAppContext">
+		<property name="contextPath" value="/" />
+		<property name="war"
+			value="#{systemProperties['webapp.path'] ?: 'src/main/resources/webapp'} " />
+	</bean>
+	<bean id="exampleContextHandler" class="org.eclipse.jetty.webapp.WebAppContext">
+		<property name="contextPath" value="/example" />
+		<property name="war" value="#{systemProperties['webapp.path'] ?: 'src/main/resources/webapp'}/together.war" />
+	</bean>
+</beans>
